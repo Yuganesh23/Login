@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login & Register with OTP</title>
+
+<!-- Google Fonts: Poppins -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+
+<style>
+  /* Your existing styles */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Poppins', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    background: #ffffffee;
+    padding: 2.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    width: 340px;
+    transition: box-shadow 0.3s ease;
+  }
+  .container:hover {
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  h2 {
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #4b3f72;
+  }
+  input[type="email"], input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    margin: 0.4rem 0 1rem 0;
+    border: 1.8px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="email"]:focus, input[type="password"]:focus, input[type="text"]:focus {
+    border-color: #667eea;
+    outline: none;
+  }
+  button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #667eea;
+    border: none;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #5a67d8;
+  }
+  .message {
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 500;
+  }
+  .toggle-btns {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+  .toggle-btns button {
+    width: 50%;
+    background: #ddd;
+    color: #444;
+    margin: 0 5px;
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 0.5rem 0;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .toggle-btns button.active {
+    background: #667eea;
+    color: white;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.6);
+  }
+  .otp-section {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .otp-section button {
+    width: auto;
+    padding: 0.5rem 1rem;
+    margin-top: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="toggle-btns">
+    <button id="showLogin" class="active">Login</button>
+    <button id="showRegister">Register</button>
+  </div>
+
+  <!-- Login Form -->
+  <div id="loginForm">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email" required />
+    <input type="password" id="loginPassword" placeholder="Password" required />
+    <button onclick="login()">Login</button>
+
+    <div class="otp-section">
+      <button onclick="generateOtp()">Send OTP</button>
+      <input type="text" id="otpInput" placeholder="Enter OTP" style="margin-top: 0.5rem;" />
+      <button onclick="verifyOtp()">Verify OTP</button>
+    </div>
+
+    <div class="message" id="loginMessage"></div>
+  </div>
+
+  <!-- Register Form -->
+  <div id="registerForm" style="display:none;">
+    <h2>Register</h2>
+    <input type="email" id="registerEmail" placeholder="Email" required />
+    <input type="password" id="registerPassword" placeholder="Password" required />
+    <button onclick="register()">Register</button>
+    <div class="message" id="registerMessage"></div>
+  </div>
+</div>
+
+<script>
+  // Toggle between login and register forms
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const showLoginBtn = document.getElementById('showLogin');
+  const showRegisterBtn = document.getElementById('showRegister');
+
+  showLoginBtn.onclick = () => {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    showLoginBtn.classList.add('active');
+    showRegisterBtn.classList.remove('active');
+    clearMessages();
+  };
+
+  showRegisterBtn.onclick = () => {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'block';
+    showRegisterBtn.classList.add('active');
+    showLoginBtn.classList.remove('active');
+    clearMessages();
+  };
+
+  function clearMessages() {
+    document.getElementById('loginMessage').textContent = '';
+    document.getElementById('registerMessage').textContent = '';
+  }
+
+  // Login with email/password
+  async function login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    const message = document.getElementById('loginMessage');
+    message.style.color = 'red';
+    message.textContent = '';
+
+    if (!email || !password) {
+      message.textContent = 'Please enter email and password.';
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/logins/authenticate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        message.textContent = errorText || 'Login failed';
+        return;
+      }
+
+      const data = await response.json();
+      localStorage.setItem('jwtToken', data.token);
+      message.style.color = 'green';
+      message.textContent = 'Login successful! Redirecting...';
+
+      setTimeout(() => {
+        window.location.href = 'dashboard.html'; // change as needed
+      }, 1500);
+    } catch (error) {
+      message.textContent = 'Error: ' + error.message;
+    }
+  }
+
+  // Register new user
+  async function register() {
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+    const message = document.getElementById('registerMessage');
+    message.style.color = 'red';
+    message.textContent = '';
+
+    if (!email || !password) {
+      message.textContent = 'Please enter email and password.';
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/logins', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        message.textContent = errorText || 'Registration failed';
+        return;
+      }
+
+      message.style.color = 'green';
+      message.textContent = 'Registration successful! You can now login.';
+      
+      // Automatically switch to login form
+      setTimeout(() => {
+        showLoginBtn.click();
+      }, 1500);
+    } catch (error) {
+      message.textContent = 'Error: ' + error.message;
+    }
+  }
+
+  // Send OTP to email
+  async function generateOtp() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const message = document.getElementById('loginMessage');
+    message.style.color = 'red';
+    message.textContent = '';
+
+    if (!email) {
+      message.textContent = 'Please enter your email to receive OTP.';
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/logins/generate?email=${encodeURIComponent(email)}`, {
+        method: 'POST'
+      });
+
+      const text = await response.text();
+      if (response.ok) {
+        message.style.color = 'green';
+        message.textContent = text;
+      } else {
+        message.textContent = text || 'Failed to send OTP';
+      }
+    } catch (error) {
+      message.textContent = 'Error: ' + error.message;
+    }
+  }
+
+  // Verify OTP
+ async function verifyOtp() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const otp = document.getElementById('otpInput').value.trim();
+  const message = document.getElementById('loginMessage');
+  message.style.color = 'red';
+  message.textContent = '';
+
+  if (!email || !otp) {
+    message.textContent = 'Please enter your email and OTP.';
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://localhost:8080/logins/verify?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`, {
+      method: 'POST'
+    });
+
+    const text = await response.text();
+    if (response.ok) {
+      message.style.color = 'green';
+      message.textContent = text || 'OTP verified successfully!';
+    } else {
+      message.textContent = text || 'OTP verification failed';
+    }
+  } catch (error) {
+    message.textContent = 'Error: ' + error.message;
+  }
+}
+
+</script>
+</body>
+</html>
